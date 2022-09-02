@@ -38,7 +38,7 @@ app.get("/", async (req, res) => {
 });
 
 app.post("/add", async (req, res) => {
-  console.log("req", req);
+  //   console.log("req", req);
   console.log("body", req.body);
   const { todo, status, date_added, completion } = req.body;
   const result = await db.run(
