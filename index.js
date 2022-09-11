@@ -64,11 +64,28 @@ app.delete("/delete/:id", async (req, res) => {
   res.status(200);
 });
 
-app.put("/update", async (req, res) => {
+app.put("/update/status", async (req, res) => {
   const { pk, toUpdate } = req.body;
   const sql_str = `update todos set status="${toUpdate}" where pk="${pk}"`;
   console.log("in here", sql_str);
   const result = db.run(sql_str);
   res.send("updated");
+  res.status(200);
+});
+
+app.put("/update/todo", async (req, res) => {
+  const { todoData, pk } = req.body;
+  const sql_str = `update todos set todo="${todoData}" where pk="${pk}"`;
+  console.log("in here", sql_str);
+  const result = db.run(sql_str);
+  res.send("updated");
+  res.status(200);
+});
+
+app.delete("/delete", async (req, res) => {
+  const { pk } = req.body;
+  const sql_str = `delete from todos where pk="${pk}"`;
+  const result = db.run(sql_str);
+  res.send("deleted");
   res.status(200);
 });
