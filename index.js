@@ -1,6 +1,7 @@
 const express = require("express");
 const { open } = require("sqlite");
 const sqlite3 = require("sqlite3");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
 const { v4: uuidv4 } = require("uuid");
@@ -88,4 +89,41 @@ app.delete("/delete", async (req, res) => {
   const result = db.run(sql_str);
   res.send("deleted");
   res.status(200);
+});
+
+app.post("/login", async (req, response) => {
+  console.log(req.body);
+  const { username, password } = req.body;
+  console.log(username, password);
+  const sql_str = `select * from users where username="${username}"`;
+  const res = await db.all(sql_str);
+  if (res.length == 1) {
+    if (res[0]["password"] == password) {
+      const payload = { username };
+      const jwtToken = jwt.sign(payload, "secret");
+      response.send({ msg: jwtToken });
+      response.status(200);
+    } else {
+      response.send({ msg: "Authentication Failed" });
+      response.status(400);
+    }
+  } else {
+    response.send({ msg: "User doesn't exist" });
+    response.status(404);
+  }
+});
+
+app.post("/signup", async (req, response) => {
+  const { name, username, password } = req.body;
+  const sql_str = `select * from users where username="${username}"`;
+  const res = await db.all(sql_str);
+  if (res.length != 0) {
+    response.status(400);
+    response.send("username already exists");
+  } else {
+    const sql_query_to_add_user = `insert into users (name,username,password) values ("${name}","${username}","${password}")`;
+    const result = db.run(sql_query_to_add_user);
+    response.send("Account created Successfully");
+    response.status(200);
+  }
 });
