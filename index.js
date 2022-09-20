@@ -32,40 +32,70 @@ const initialiseDBandServer = async () => {
 
 initialiseDBandServer();
 
-app.get("/", async (req, res) => {
+const mWareFunc = (req, res, next) => {
+  const authToken = req.headers["authorization"];
+  if (authToken === undefined) {
+    res.status(401);
+    res.send("Invalid JWT Token");
+  } else {
+    let token = authToken.split(" ")[1];
+    if (token === undefined) {
+      res.status(401);
+      res.send("Invalid JWT Token");
+    } else {
+      jwt.verify(token, "secret", async (error, payload) => {
+        if (error) {
+          res.status(401);
+          res.send("Invalid JWT Token");
+        } else {
+          req.actualUserName = payload.username;
+          next();
+        }
+      });
+    }
+  }
+};
+
+app.get("/", mWareFunc, async (req, res) => {
   //   res.send("hellos");
-  const result = await db.all("select * from todos where status=='progress'");
+  const result = await db.all(
+    `select * from todos where status=='progress' and user="${req.actualUserName}"`
+  );
   res.send(JSON.stringify(result));
   res.status(200);
 });
 
-app.get("/completed", async (req, res) => {
-  const result = await db.all("select * from todos where status=='completed'");
+app.get("/completed", mWareFunc, async (req, res) => {
+  const result = await db.all(
+    `select * from todos where status=='completed' and user="${req.actualUserName}"`
+  );
   console.log("completed", result);
   res.send(JSON.stringify(result));
   res.status(200);
 });
 
-app.post("/add", async (req, res) => {
+app.post("/add", mWareFunc, async (req, res) => {
   //   console.log("req", req);
   console.log("body", req.body);
   const { todo, status, date_added, completion } = req.body;
   const result = await db.run(
-    `insert into todos (pk,todo,status,date_added,completion) values ("${uuidv4()}","${todo}","${status}","${date_added}","${completion}")`
+    `insert into todos (pk,todo,status,date_added,completion,user) values ("${uuidv4()}","${todo}","${status}","${date_added}","${completion}","${
+      req.actualUserName
+    }")`
   );
   console.log(result);
   res.send("added successfully");
   res.status(200);
 });
 
-app.delete("/delete/:id", async (req, res) => {
+app.delete("/delete/:id", mWareFunc, async (req, res) => {
   const { id } = req.params;
   const result = await db.run(`delete from todos where pk like ${id}`);
   res.send("delete");
   res.status(200);
 });
 
-app.put("/update/status", async (req, res) => {
+app.put("/update/status", mWareFunc, async (req, res) => {
   const { pk, toUpdate } = req.body;
   const sql_str = `update todos set status="${toUpdate}" where pk="${pk}"`;
   console.log("in here", sql_str);
@@ -74,7 +104,7 @@ app.put("/update/status", async (req, res) => {
   res.status(200);
 });
 
-app.put("/update/todo", async (req, res) => {
+app.put("/update/todo", mWareFunc, async (req, res) => {
   const { todoData, pk } = req.body;
   const sql_str = `update todos set todo="${todoData}" where pk="${pk}"`;
   console.log("in here", sql_str);
@@ -83,7 +113,7 @@ app.put("/update/todo", async (req, res) => {
   res.status(200);
 });
 
-app.delete("/delete", async (req, res) => {
+app.delete("/delete", mWareFunc, async (req, res) => {
   const { pk } = req.body;
   const sql_str = `delete from todos where pk="${pk}"`;
   const result = db.run(sql_str);
